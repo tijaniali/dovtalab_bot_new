@@ -18,7 +18,14 @@ jobs:
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_KEY }}
+          key: |
+            -----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACDnYohliISnhLWO4jdUZ15MTMgzZDgUkUduGBuPlNv3mQAAAJjydPvo8nT7
+6AAAAAtzc2gtZWQyNTUxOQAAACDnYohliISnhLWO4jdUZ15MTMgzZDgUkUduGBuPlNv3mQ
+AAAEDOBrvQjWkCqLL27IWSEneQIhAs/Tz2hyLCUYr+5g4+FOdiiGWIhKeEtY7iN1RnXkxM
+yDNkOBSRR24YG4+U2/eZAAAAD2RlcGxveUBkb3Z0YWxhYgECAwQFBg==
+-----END OPENSSH PRIVATE KEY-----
           script: |
             cd /root/Dovtalab
 
