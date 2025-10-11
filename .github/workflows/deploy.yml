@@ -1,0 +1,41 @@
+name: Deploy Telegram Bot
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /root/Dovtalab
+
+            # 🔹 делаем бэкап данных
+            if [ -d data ]; then
+              cp -r data /tmp/data_backup || true
+            fi
+
+            # 🔹 обновляем проект
+            git fetch origin main
+            git reset --hard origin/main
+            pip install -r requirements.txt
+
+            # 🔹 восстанавливаем данные
+            if [ -d /tmp/data_backup ]; then
+              cp -r /tmp/data_backup/* data/ || true
+            fi
+
+            # 🔹 перезапускаем бота
+            sudo systemctl restart tgbot

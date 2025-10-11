@@ -4,7 +4,7 @@ import os
 
 @dataclass(frozen=True)
 class Config:
-    TOKEN: str = os.getenv("BOT_TOKEN", "6931335165:AAHJ9XYgCBUUqjTti5fQZxRiMkdRCR_tqeg")
+    TOKEN: str = os.getenv("BOT_TOKEN", "8312544948:AAEM4lHDUd4Dg3E4L-IR3vmwECXhf7dIBOg")
     ADMIN_ID: str = os.getenv("ADMIN_ID", "1653169072")
     CHANNEL_ID: str = os.getenv("CHANNEL_ID", "-1002532606911")
     CHANNEL_USERNAME: str = os.getenv("CHANNEL_USERNAME", "dovtalab_bot_official")

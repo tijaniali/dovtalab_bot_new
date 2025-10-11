@@ -1,0 +1,4 @@
+db/rating.json
+db/UsersConfig.json
+db/group_rating.json
+*.venv
