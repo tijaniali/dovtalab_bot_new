@@ -20,7 +20,7 @@ class UserManager:
         self.users = load_json(self.users_file, default={})
 
     def ensure(self, chat_id: int | str,
-               is_group: bool,
+               is_group: bool = False,
                title: str | None = None,
                username: str | None = None,
                first_name: str | None = None,

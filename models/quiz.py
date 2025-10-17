@@ -49,9 +49,10 @@ class QuizManager:
     def start(self, chat_id: int, questions: List[dict]):
         self.active[chat_id] = QuizState(questions=questions)
 
-    def stop(self, chat_id: int):
+    async def stop(self, chat_id: int):
         if chat_id in self.active:
             del self.active[chat_id]
+            self.poll_registry.cleanup_by_owner(PollKind.QUIZ, chat_id)
 
     async def _handle_poll(self, poll_info: PollInfo, telegram_user: Any, is_correct: bool, option_ids: List[int], bot: Bot):
         """
@@ -81,75 +82,81 @@ class QuizManager:
 
         self.stats.inc_games()
         for i, q in enumerate(st.questions):
-            print(q)
-            options = list(q["answers"].keys())
-            correct_answer = normalize_answer(q["CorrectAnswers"].upper())
-            options_norm = [normalize_answer(o).upper() for o in options]
-
-            if len(q["question"]) >= 299:
-                self.logger.error("Слишком длинный вопрос — пропущено")
-                continue
-
-            f = False
-            for opt in options:
-                if len(opt) >= 99:
-                    f = True
-                    self.logger.error(f"Слишком длинный вопрос — пропущено")
-            if f:
-                continue
-
-            if correct_answer not in options_norm:
-                self.logger.error("Правильный ответ не найден в вариантах — пропущено")
-                continue
-
-            if "picture_id" in q:
-                if q["picture_id"]:
-                    try:
-                        await bot.send_photo(
-                            chat_id=chat_id,
-                            photo=q["picture_id"]
-                        )
-                        await asyncio.sleep(1)
-                    except:
-                        await bot.send_message(
-                            CFG.ADMIN_ID,
-                            f"⚠️ Не удалось отправить картинку для вопроса:\n{q['question']}"
-                        )
-                        continue
-
-            correct_index = options_norm.index(correct_answer)
-            try:
-                num = "".join(superscript_map[c] for c in q["number"])
-                poll_msg = await bot.send_poll(
-                    chat_id,
-                    f"[{i+1}/{len(st.questions)}]" + num + " " + q["question"],
-                    list(q["answers"].values()),
-                    type=PollType.QUIZ,
-                    correct_option_id=correct_index,
-                    is_anonymous=False,
-                    open_period=False if quiz_time == 0 else quiz_time
-                )
-            except Exception as e:
-                await bot.send_message(
-                    CFG.ADMIN_ID,
-                    f"<b>Не удалось отправить вопрос!</b>"
-                    f"\n {q['question']} \n\n<b>Ошибка</b>"
-                    f"\n<blockquote><code>{e}</code></blockquote>", parse_mode="HTML"
-                )
-                continue
-
-            self.poll_registry.record_poll(
-                poll_id=poll_msg.poll.id,
-                kind=PollKind.QUIZ,
-                owner_id=chat_id,
-                target_user_id=None,
-                correct_option_id=poll_msg.poll.correct_option_id
-            )
-
-            await asyncio.sleep(30 if quiz_time == 0 else quiz_time)
-
             if chat_id not in self.active:
                 return  # остановлено
+            try:
+                print(q)
+                options = list(q["answers"].keys())
+                correct_answer = normalize_answer(q["CorrectAnswers"].upper())
+                options_norm = [normalize_answer(o).upper() for o in options]
+
+                if len(q["question"]) >= 299:
+                    self.logger.error("Слишком длинный вопрос — пропущено")
+                    continue
+
+                f = False
+                for opt in options:
+                    if len(opt) >= 99:
+                        f = True
+                        self.logger.error(f"Слишком длинный вопрос — пропущено")
+                if f:
+                    continue
+
+                if correct_answer not in options_norm:
+                    self.logger.error("Правильный ответ не найден в вариантах — пропущено")
+                    continue
+
+                if "picture_id" in q:
+                    if q["picture_id"]:
+                        try:
+                            await bot.send_photo(
+                                chat_id=chat_id,
+                                photo=q["picture_id"]
+                            )
+                            await asyncio.sleep(1)
+                        except:
+                            await bot.send_message(
+                                CFG.ADMIN_ID,
+                                f"⚠️ Не удалось отправить картинку для вопроса:\n{q['question']}"
+                            )
+                            continue
+
+                correct_index = options_norm.index(correct_answer)
+                try:
+                    num = "".join(superscript_map[c] for c in q["number"])
+                    poll_msg = await bot.send_poll(
+                        chat_id,
+                        f"[{i+1}/{len(st.questions)}]" + num + " " + q["question"],
+                        list(q["answers"].values()),
+                        type=PollType.QUIZ,
+                        correct_option_id=correct_index,
+                        is_anonymous=False,
+                        open_period=False if quiz_time == 0 else quiz_time
+                    )
+                except Exception as e:
+                    await bot.send_message(
+                        CFG.ADMIN_ID,
+                        f"<b>Не удалось отправить вопрос!</b>"
+                        f"\n {q['question']} \n\n<b>Ошибка</b>"
+                        f"\n<blockquote><code>{e}</code></blockquote>", parse_mode="HTML"
+                    )
+                    continue
+
+                self.poll_registry.record_poll(
+                    poll_id=poll_msg.poll.id,
+                    kind=PollKind.QUIZ,
+                    owner_id=chat_id,
+                    target_user_id=None,
+                    correct_option_id=poll_msg.poll.correct_option_id
+                )
+
+                await asyncio.sleep(30 if quiz_time == 0 else quiz_time)
+
+                if chat_id not in self.active:
+                    return  # остановлено
+            except Exception as e:
+                self.logger.error(f"Неожиданная ошибка в вопросе {i+1}, пропускаем: {e}")
+                continue
 
         await self.send_results(bot, chat_id, messages)
 
@@ -157,43 +164,47 @@ class QuizManager:
         st = self.active.get(chat_id)
         if not st:
             return
-        sorted_scores = sorted(st.user_scores.items(), key=lambda x: x[1]["score"], reverse=True)
-        text = messages["quiz_res"]
-        f = 1
-        for idx, (uid, data) in enumerate(sorted_scores, start=1):
-            if (idx > 1):
-                if int(data["score"]) != int(sorted_scores[idx - 2][1]["score"]):
-                    f += 1
-            if data["user_name"] and data["full_name"]:
-                user_disp = f"<a href='tg://user?id={uid}'>{escape(data['full_name'])}</a>"
-            elif data["user_name"]:
-                user_disp = f"@{data['user_name']}"
-            else:
-                user_disp = data["full_name"] or messages.get("unknown_user", "Unknown")
-            num = f
-            if (f == 1):
-                num = "🥇"
-            elif (f == 2):
-                num = "🥈"
-            elif (f == 3):
-                num = "🥉"
-            text += messages["user_score"].format(num=num, user=user_disp, score=str(data["score"]))
+        try:
+            sorted_scores = sorted(st.user_scores.items(), key=lambda x: x[1]["score"], reverse=True)
+            text = messages["quiz_res"]
+            f = 1
+            for idx, (uid, data) in enumerate(sorted_scores, start=1):
+                if (idx > 1):
+                    if int(data["score"]) != int(sorted_scores[idx - 2][1]["score"]):
+                        f += 1
+                if data["user_name"] and data["full_name"]:
+                    user_disp = f"<a href='tg://user?id={uid}'>{escape(data['full_name'])}</a>"
+                elif data["user_name"]:
+                    user_disp = f"@{data['user_name']}"
+                else:
+                    user_disp = data["full_name"] or messages.get("unknown_user", "Unknown")
+                num = f
+                if (f == 1):
+                    num = "🥇"
+                elif (f == 2):
+                    num = "🥈"
+                elif (f == 3):
+                    num = "🥉"
+                text += messages["user_score"].format(num=num, user=user_disp, score=str(data["score"]))
 
-        add_text = f"<blockquote>{self.ad.get_ad()}</blockquote>\n" if self.ad.get_ad() != " " else messages.get("default_ad", "").format(chat_link="@mmt_taj")
-        text += "\n" + add_text
+            add_text = f"<blockquote>{self.ad.get_ad()}</blockquote>\n" if self.ad.get_ad() != " " else messages.get("default_ad", "").format(chat_link="@mmt_taj")
+            text += "\n" + add_text
 
-        from aiogram.types import LinkPreviewOptions
-        await bot.send_message(
-            chat_id, text, parse_mode="HTML",
-            link_preview_options=LinkPreviewOptions(
-                url=self.ad.get_link()
-                if self.ad.get_link()
-                   or self.ad.get_link() != " "
-                else None,
-                prefer_small_media=True)
-        )
-        self.poll_registry.cleanup_by_owner(PollKind.QUIZ, chat_id)
-        del self.active[chat_id]
+            from aiogram.types import LinkPreviewOptions
+            await bot.send_message(
+                chat_id, text, parse_mode="HTML",
+                link_preview_options=LinkPreviewOptions(
+                    url=self.ad.get_link()
+                    if self.ad.get_link()
+                       or self.ad.get_link() != " "
+                    else None,
+                    prefer_small_media=True)
+            )
+        except Exception as e:
+            self.logger.error(f"Ошибка при отправке результатов: {e}")
+        finally:
+            self.poll_registry.cleanup_by_owner(PollKind.QUIZ, chat_id)
+            del self.active[chat_id]
 
 #ДУЭЛь
 @dataclass

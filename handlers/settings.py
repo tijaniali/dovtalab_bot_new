@@ -23,9 +23,7 @@ async def help(msg: types.Message):
 @dp.message(Command("set_time"))
 async def set_time(msg: types.Message):
     assert users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
+    users.ensure(msg.from_user.id,
                  username=getattr(msg.from_user, "username", None),
                  first_name=getattr(msg.from_user, "first_name", None),
                  is_started=True)
@@ -52,9 +50,7 @@ async def set_time(msg: types.Message):
 @dp.message(Command("set_count"))
 async def set_count(msg: types.Message):
     assert users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
+    users.ensure(msg.from_user.id,
                  username=getattr(msg.from_user, "username", None),
                  first_name=getattr(msg.from_user, "first_name", None),
                  is_started=True)
@@ -81,9 +77,7 @@ async def set_count(msg: types.Message):
 @dp.message(Command("set_lang"))
 async def set_lang(msg: types.Message):
     assert users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
+    users.ensure(msg.from_user.id,
                  username=getattr(msg.from_user, "username", None),
                  first_name=getattr(msg.from_user, "first_name", None),
                  is_started=True)
@@ -109,9 +103,7 @@ async def set_lang(msg: types.Message):
 @dp.callback_query(lambda c: c.data and c.data.startswith("set_lang:"))
 async def set_lang_callback(msg: types.CallbackQuery):
     assert users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
+    users.ensure(msg.from_user.id,
                  username=getattr(msg.from_user, "username", None),
                  first_name=getattr(msg.from_user, "first_name", None),
                  is_started=True)

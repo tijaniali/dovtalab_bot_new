@@ -77,12 +77,28 @@ def setup(_quiz: QuizManager,
 @dp.message(Command("start"))
 async def start(msg: types.Message, command: CommandObject):
     assert quiz_manager and rating and users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
-                 username=getattr(msg.from_user, "username", None),
-                 first_name=getattr(msg.from_user, "first_name", None),
-                 is_started=True)
+    if msg.chat.type == "private":
+        users.ensure(msg.from_user.id,
+                     username=getattr(msg.from_user, "username", None),
+                     first_name=getattr(msg.from_user, "first_name", None),
+                     is_started=True)
+
+    if msg.chat.type != "private":
+        try:
+            chat_member = await bot.get_chat_member(chat_id=msg.chat.id, user_id=bot.id)
+            is_bot_in_group = chat_member.status in ["administrator", "member", "creator"]
+        except Exception as e:
+            # Если не удалось получить информацию о боте в группе
+            logger.error(f"Не удалось проверить статус бота в группе {msg.chat.id}: {e}")
+            is_bot_in_group = False
+
+        users.ensure(msg.chat.id,
+                     is_group=True,
+                     title=getattr(msg.chat, "title", None),
+                     username=getattr(msg.chat, "username", None),
+                     is_started=is_bot_in_group)
+
+
 
     lang = users.get_lang(str(msg.chat.id) if msg.chat.type != "private" else str(msg.from_user.id), "tg")
     # messages dictionary is supposed to be loaded in main and passed via context; for brevity, store in bot['messages']
@@ -117,18 +133,30 @@ async def start(msg: types.Message, command: CommandObject):
 @dp.message(Command("start_quiz"))
 async def start_quiz(msg: types.Message):
     assert quiz_manager and rating and users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
+    users.ensure(msg.from_user.id,
                  username=getattr(msg.from_user, "username", None),
-                 first_name=getattr(msg.from_user, "first_name", None),
-                 is_started=True)
+                 first_name=getattr(msg.from_user, "first_name", None))
+
+    if msg.chat.type != "private":
+        try:
+            chat_member = await bot.get_chat_member(chat_id=msg.chat.id, user_id=bot.id)
+            is_bot_in_group = chat_member.status in ["administrator", "member", "creator"]
+        except Exception as e:
+            # Если не удалось получить информацию о боте в группе
+            logger.error(f"Не удалось проверить статус бота в группе {msg.chat.id}: {e}")
+            is_bot_in_group = False
+
+        users.ensure(msg.chat.id,
+                     is_group=True,
+                     title=getattr(msg.chat, "title", None),
+                     username=getattr(msg.chat, "username", None),
+                     is_started=is_bot_in_group)
 
     lang = users.get_lang(str(msg.chat.id) if msg.chat.type != "private" else str(msg.from_user.id), "tg")
     # messages dictionary is supposed to be loaded in main and passed via context; for brevity, store in bot['messages']
     messages = (getattr(bot, "context", {}) or {}).get("messages", {}).get(lang, {})
 
-    if not users.started(str(msg.chat.id) if msg.chat.type != "private" else str(msg.from_user.id)):
+    if not users.started(str(msg.from_user.id)):
         kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=messages.get("start_bot", "Активировать бота"),
                                                                          url="https://t.me/Dovtalabbot?start=active_for_quiz:None")]])
         return await msg.reply(messages.get("bot_inactive", "Бот не активирован"), reply_markup=kb)
@@ -159,12 +187,10 @@ async def start_quiz(msg: types.Message):
 @dp.message(Command("stop_quiz"))
 async def stop_quiz(msg: types.Message):
     assert quiz_manager and rating and users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
+    users.ensure(msg.from_user.id,
                  username=getattr(msg.from_user, "username", None),
-                 first_name=getattr(msg.from_user, "first_name", None),
-                 is_started=True)
+                 first_name=getattr(msg.from_user, "first_name", None)
+                 )
 
     lang = users.get_lang(str(msg.chat.id) if msg.chat.type != "private" else str(msg.from_user.id), "tg")
     messages = (getattr(bot, "context", {}) or {}).get("messages", {}).get(lang, {})
@@ -174,7 +200,7 @@ async def stop_quiz(msg: types.Message):
             return await msg.reply(messages.get("quiz_stp_not_admin"), parse_mode="HTML")
     if quiz_manager.is_running(msg.chat.id):
         await quiz_manager.send_results(bot, msg.chat.id,messages)
-        quiz_manager.stop(msg.chat.id)
+        await quiz_manager.stop(msg.chat.id)
         return await msg.reply(messages.get("quiz_stopped"), parse_mode="HTML")
     return await msg.reply(messages.get("not_actv_quiz"), parse_mode="HTML")
 
@@ -193,12 +219,9 @@ async def on_poll_answer(ans: types.PollAnswer):
 @dp.message(Command("set_picture"))
 async def set_picture(msg: types.Message):
     assert quiz_manager and rating and users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
+    users.ensure(msg.from_user.id,
                  username=getattr(msg.from_user, "username", None),
-                 first_name=getattr(msg.from_user, "first_name", None),
-                 is_started=True)
+                 first_name=getattr(msg.from_user, "first_name", None))
 
     lang = users.get_lang(str(msg.chat.id) if msg.chat.type != "private" else str(msg.from_user.id), "tg")
     messages = (getattr(bot, "context", {}) or {}).get("messages", {}).get(lang, {})
@@ -245,12 +268,9 @@ async def set_picture(msg: types.Message):
 @dp.message(Command("del_picture"))
 async def del_picture(msg: types.Message):
     assert quiz_manager and rating and users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
+    users.ensure(msg.from_user.id,
                  username=getattr(msg.from_user, "username", None),
-                 first_name=getattr(msg.from_user, "first_name", None),
-                 is_started=True)
+                 first_name=getattr(msg.from_user, "first_name", None))
 
     lang = users.get_lang(str(msg.chat.id) if msg.chat.type != "private" else str(msg.from_user.id), "tg")
     messages = (getattr(bot, "context", {}) or {}).get("messages", {}).get(lang, {})
@@ -292,12 +312,9 @@ async def del_picture(msg: types.Message):
 @dp.message(Command("get_quiz"))
 async def get_quiz(msg: types.Message):
     assert quiz_manager and rating and users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
+    users.ensure(msg.from_user.id,
                  username=getattr(msg.from_user, "username", None),
-                 first_name=getattr(msg.from_user, "first_name", None),
-                 is_started=True)
+                 first_name=getattr(msg.from_user, "first_name", None))
 
     lang = users.get_lang(str(msg.chat.id) if msg.chat.type != "private" else str(msg.from_user.id), "tg")
     messages = (getattr(bot, "context", {}) or {}).get("messages", {}).get(lang, {})
