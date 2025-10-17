@@ -81,12 +81,9 @@ async def clear_unactives(msg: types.Message):
 @dp.message(Command("set_ad"))
 async def set_ad(msg: types.Message):
     assert users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
+    users.ensure(msg.from_user.id,
                  username=getattr(msg.from_user, "username", None),
-                 first_name=getattr(msg.from_user, "first_name", None),
-                 is_started=True)
+                 first_name=getattr(msg.from_user, "first_name", None))
 
     lang = users.get_lang(str(msg.chat.id) if msg.chat.type != "private" else str(msg.from_user.id), "tg")
     messages = (getattr(bot, "context", {}) or {}).get("messages", {}).get(lang, {})
@@ -101,12 +98,9 @@ async def set_ad(msg: types.Message):
 @dp.message(Command("dell_ad"))
 async def dell_ad(msg: types.Message):
     assert users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
+    users.ensure(msg.from_user.id,
                  username=getattr(msg.from_user, "username", None),
-                 first_name=getattr(msg.from_user, "first_name", None),
-                 is_started=True)
+                 first_name=getattr(msg.from_user, "first_name", None))
 
     lang = users.get_lang(str(msg.chat.id) if msg.chat.type != "private" else str(msg.from_user.id), "tg")
     messages = (getattr(bot, "context", {}) or {}).get("messages", {}).get(lang, {})
@@ -121,12 +115,9 @@ async def dell_ad(msg: types.Message):
 @dp.message(Command("get_ad"))
 async def get_ad(msg: types.Message):
     assert users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
+    users.ensure(msg.from_user.id,
                  username=getattr(msg.from_user, "username", None),
-                 first_name=getattr(msg.from_user, "first_name", None),
-                 is_started=True)
+                 first_name=getattr(msg.from_user, "first_name", None))
 
     lang = users.get_lang(str(msg.chat.id) if msg.chat.type != "private" else str(msg.from_user.id), "tg")
     messages = (getattr(bot, "context", {}) or {}).get("messages", {}).get(lang, {})
@@ -142,12 +133,9 @@ async def get_ad(msg: types.Message):
 @dp.message(Command("get_stats"))
 async def get_stats(msg: types.Message):
     assert users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
+    users.ensure(msg.from_user.id,
                  username=getattr(msg.from_user, "username", None),
-                 first_name=getattr(msg.from_user, "first_name", None),
-                 is_started=True)
+                 first_name=getattr(msg.from_user, "first_name", None))
 
     lang = users.get_lang(str(msg.chat.id) if msg.chat.type != "private" else str(msg.from_user.id), "tg")
     messages = (getattr(bot, "context", {}) or {}).get("messages", {}).get(lang, {})
@@ -163,12 +151,9 @@ async def get_stats(msg: types.Message):
 @dp.message(Command("get_groups"))
 async def get_gropus(msg: types.Message):
     assert users
-    users.ensure(msg.chat.id,
-                 is_group=(msg.chat.type != "private"),
-                 title=getattr(msg.chat, "title", None),
+    users.ensure(msg.from_user.id,
                  username=getattr(msg.from_user, "username", None),
-                 first_name=getattr(msg.from_user, "first_name", None),
-                 is_started=True)
+                 first_name=getattr(msg.from_user, "first_name", None))
 
     lang = users.get_lang(str(msg.chat.id) if msg.chat.type != "private" else str(msg.from_user.id), "tg")
     messages = (getattr(bot, "context", {}) or {}).get("messages", {}).get(lang, {})

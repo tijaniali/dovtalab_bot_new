@@ -1,6 +1,6 @@
 from aiogram import types
 from aiogram.filters import Command
-from aiogram.types import LinkPreviewOptions
+from aiogram.types import LinkPreviewOptions, InlineKeyboardMarkup, InlineKeyboardButton
 
 from bot import dp, bot
 from models.rating import RatingManager
@@ -25,6 +25,12 @@ async def global_rating(msg: types.Message):
     lang_key = str(msg.from_user.id)
     lang = users.get_lang(lang_key, "tg")
     messages = (getattr(bot, "context", {}) or {}).get("messages", {}).get(lang, {})
+
+    if not users.started(str(msg.from_user.id)):
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text=messages.get("start_bot", "Активировать бота"),
+                                                   url="https://t.me/Dovtalabbot?start=active_for_quiz:None")]])
+        return await msg.reply(messages.get("bot_inactive", "Бот не активирован"), reply_markup=kb)
 
     sorted_scores = sorted(rating.global_scores.items(), key=lambda x: x[1]["score"], reverse=True)
     text = messages.get("top_users", "<b>Топ игроков</b>\n")
@@ -75,6 +81,13 @@ async def group_rating(msg: types.Message):
     messages = (getattr(bot, "context", {}) or {}).get("messages", {}).get(lang, {})
     if (msg.chat.type == "private"):
         return await msg.reply(messages.get("gr_rating_error", "Групповые рейтинги доступны только в группах!"), parse_mode="HTML")
+
+    if not users.started(str(msg.from_user.id)):
+        kb = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text=messages.get("start_bot", "Активировать бота"),
+                                                   url="https://t.me/Dovtalabbot?start=active_for_quiz:None")]])
+        return await msg.reply(messages.get("bot_inactive", "Бот не активирован"), reply_markup=kb)
+
     sorted_scores = sorted(rating.group_scores[str(msg.chat.id)].items(), key=lambda x: x[1]["score"], reverse=True)
 
     text = messages.get("top_users", "<b>Топ игроков</b>\n")
